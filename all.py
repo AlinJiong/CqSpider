@@ -1208,12 +1208,15 @@ def func11():
                 file.to_csv(file_name, encoding='utf-8')
 
 
+@catch_exceptions_decorator
 def record_file_list():
-    schedule.clear()
+    global files_before
     files_before = get_file_list()
 
 
+@catch_exceptions_decorator
 def post_file_list():
+    global files_before, files_after
     files_after = get_file_list()
     file_post = list(set(files_after).difference(files_before))
 
@@ -1247,7 +1250,7 @@ def post_file_list():
 
 
 if __name__ == "__main__":
-    schedule.every().day.at("9:55").do(record_file_list)
+    schedule.every().day.at("09:55").do(record_file_list)
     schedule.every().day.at("10:00").do(func1)
     schedule.every().day.at("10:00").do(func2)
     schedule.every().day.at("10:00").do(func3)
