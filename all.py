@@ -16,7 +16,14 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 import functools
 import traceback
+import logging
 
+cur_dir = os.getcwd()  
+log_path = os.path.join(cur_dir, "info.log")
+
+# encoding='utf-8'
+logging.basicConfig(filename=log_path, level=logging.DEBUG,
+                    filemode='a+', format='%(levelname)s:%(asctime)s:%(message)s', datefmt='%Y-%d-%m %H:%M:%S')
 
 headers = {
     'User-agent':
@@ -1225,8 +1232,11 @@ def post_file_list():
     for item in file_post:
         if re.search('.*?(csv|docx|xlsx)', item):
             files.append(item)
-
-    post_email(files)
+            
+    logging.info(files)
+    
+    if len(files) > 0:
+        post_email(files)
 
 
 

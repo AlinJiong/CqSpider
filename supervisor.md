@@ -5,13 +5,11 @@
 - pip 安装
 
   `pip install supervisor`
-
 - 安装好之后，创建目录
 
   `mkdir /etc/supervisor`
 
   `echo_supervisord_conf > /etc/supervisor/supervisord.conf`
-
 - 修改默认的配置文件 `supervisord.conf`
   `[include] files = /etc/supervisor/conf.d/*.conf`
 
@@ -54,7 +52,7 @@ stdout_logfile=/home/T1/CqSpider/.stdout.log
 
 `supervisorctl reload # 重新启动supervisord`
 
-`supervisordctl shutdown # 关闭supervisord`
+`supervisorctl shutdown # 关闭supervisord`
 
 `supervisorctl reread # 重新读取配置`
 
