@@ -154,6 +154,10 @@ def get_timestamp() -> tuple:
     res = []
     for t in _time_str:
         res.append(trans_time(t))
+    
+    # 时间范围扩大一天，为上个月的最后一天到下个月的第一天
+    #  ('2022-07-31 00:00:00', '2022-09-01 00:00:00')
+    res[0] -= 86400000
     return res
 
 
