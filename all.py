@@ -1246,19 +1246,19 @@ def post_file_list():
 
 
 if __name__ == "__main__":
-    schedule.every().day.at("09:55").do(record_file_list)
-    schedule.every().day.at("10:00").do(func1)
-    schedule.every().day.at("10:00").do(func2)
-    schedule.every().day.at("10:00").do(func3)
-    schedule.every().day.at("10:00").do(func4)
-    schedule.every().day.at("10:00").do(func5)
-    schedule.every().day.at("10:00").do(func6)
-    schedule.every().day.at("10:00").do(func7)
-    schedule.every().day.at("10:00").do(func8)
-    schedule.every().day.at("10:00").do(func9)
-    schedule.every().day.at("10:00").do(func10)
-    schedule.every().day.at("10:00").do(func11)
-    schedule.every().day.at("10:05").do(post_file_list)
+    schedule.every().day.at("15:55").do(record_file_list)
+    schedule.every().day.at("16:00").do(func1)
+    schedule.every().day.at("16:00").do(func2)
+    schedule.every().day.at("16:00").do(func3)
+    schedule.every().day.at("16:00").do(func4)
+    schedule.every().day.at("16:00").do(func5)
+    schedule.every().day.at("16:00").do(func6)
+    schedule.every().day.at("16:00").do(func7)
+    schedule.every().day.at("16:00").do(func8)
+    schedule.every().day.at("16:00").do(func9)
+    schedule.every().day.at("16:00").do(func10)
+    schedule.every().day.at("16:00").do(func11)
+    schedule.every().day.at("16:05").do(post_file_list)
 
     while True:
         schedule.run_pending()
