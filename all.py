@@ -23,7 +23,7 @@ log_path = os.path.join(cur_dir, "info.log")
 
 # encoding='utf-8'
 logging.basicConfig(filename=log_path, level=logging.DEBUG,
-                    filemode='a+', format='%(levelname)s:%(asctime)s:%(message)s', datefmt='%Y-%d-%m %H:%M:%S')
+                    filemode='a+', format='%(levelname)s:%(asctime)s:%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 headers = {
     'User-agent':
@@ -182,6 +182,9 @@ def get_public_period(txt: str) -> str:
         public_period = ''
 
     print(public_period)
+    
+    if len(public_period) > 24:
+        return ""
 
     return public_period
 
