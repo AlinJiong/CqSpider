@@ -75,7 +75,7 @@ def post_email(file_post=[]):
 
         password = "muklngjwdibgecjb"
         # 接收方可以是多个账户, 用分号分开,send_email()函数中手动设置
-        recipientAddrs = 'alinjiong@qq.com'
+        recipientAddrs = 'alinjiong@qq.com;976297700@qq.com'
         subject = '青年就业见习基地'  # 主题
         content = '附件下载'  # 正文内容
         send_email(smtpHost, port, sendAddr, password,
