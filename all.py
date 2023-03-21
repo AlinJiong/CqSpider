@@ -452,7 +452,8 @@ def func3():
                 all_data = html.xpath('//tbody/tr')
                 info = []
                 columns = ['单位名称', '单位地址']
-                for data in all_data[1:]:
+                # for data in all_data[1:]:
+                for data in all_data:
                     company = "".join(data.xpath("./td[2]/text()"))
                     address = "".join(data.xpath("./td[5]/text()"))
                     #print(company, address)
@@ -543,7 +544,8 @@ def func4():
                 all_data = html.xpath('//tbody/tr')
                 info = []
                 columns = ['单位名称', '单位地址']
-                for data in all_data[1:]:
+                # for data in all_data[1:]:
+                for data in all_data:
                     company = "".join(data.xpath("./td[2]/text()"))
                     address = "".join(data.xpath("./td[5]/text()"))
                     #print(company, address)
@@ -639,7 +641,8 @@ def func5():
                 all_data = html.xpath('//tbody/tr')
                 info = []
                 columns = ['单位名称', '单位地址']
-                for data in all_data[1:]:
+                # for data in all_data[1:]:
+                for data in all_data:
                     company = "".join(data.xpath("./td[2]/text()"))
                     address = "".join(data.xpath("./td[5]/text()"))
                     #print(company, address)
@@ -732,7 +735,8 @@ def func6():
                 all_data = html.xpath('//table/tbody/tr')
                 info = []
                 columns = ['单位名称', '单位地址']
-                for data in all_data[1:]:
+                # for data in all_data[1:]:
+                for data in all_data:
                     company = "".join(data.xpath("./td[2]//span/text()"))
                     address = "".join(data.xpath("./td[5]//span/text()"))
                     #print(company, address)
@@ -824,7 +828,8 @@ def func7():
                 all_data = html.xpath('//table/tbody/tr')
                 info = []
                 columns = ['单位名称', '单位地址']
-                for data in all_data[1:]:
+                # for data in all_data[1:]:
+                for data in all_data:
                     company = "".join(data.xpath("./td[2]//span/text()"))
                     address = "".join(data.xpath("./td[5]//span/text()"))
                     #print(company, address)
@@ -922,7 +927,8 @@ def func8():
                 all_data = html.xpath('//table/tbody/tr')
                 info = []
                 columns = ['单位名称', '单位地址']
-                for data in all_data[1:]:
+                # for data in all_data[1:]:
+                for data in all_data:
                     company = "".join(data.xpath("./td[2]//span/text()"))
                     address = "".join(data.xpath("./td[5]//span/text()"))
                     #print(company, address)
@@ -1015,7 +1021,8 @@ def func9():
                 all_data = html.xpath('//tbody/tr')
                 info = []
                 columns = ['单位名称', '单位地址']
-                for data in all_data[3:]:
+                # for data in all_data[3:]:
+                for data in all_data:
                     company = "".join(data.xpath("./td[2]//span/text()"))
                     address = "".join(data.xpath("./td[5]//span/text()"))
                     #print(company, address)
@@ -1112,7 +1119,8 @@ def func10():
                 all_data = html.xpath('//tbody/tr')
                 info = []
                 columns = ['单位名称', '单位地址']
-                for data in all_data[4:]:
+                # for data in all_data[4:]:
+                for data in all_data:
                     company = "".join(data.xpath("./td[2]//span/text()"))
                     address = "".join(data.xpath("./td[5]//span/text()"))
                     # print(company, address)
@@ -1205,7 +1213,8 @@ def func11():
                 all_data = html.xpath('//tbody/tr')
                 info = []
                 columns = ['单位名称', '单位地址']
-                for data in all_data[4:]:
+                # for data in all_data[4:]:
+                for data in all_data:
                     company = "".join(data.xpath("./td[2]//span/text()"))
                     address = "".join(data.xpath("./td[5]//span/text()"))
                     # print(company, address)
@@ -1246,6 +1255,17 @@ def post_file_list():
         post_email(files)
 
 
+# func1()
+# func2()
+# func3()
+# func4()
+# func5()
+# func6()
+# func7()
+# func8()
+# func9()
+# func10()
+# func11()
 
 
 if __name__ == "__main__":
