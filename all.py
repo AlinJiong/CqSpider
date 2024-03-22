@@ -75,7 +75,7 @@ def post_email(file_post=[]):
 
         password = "muklngjwdibgecjb"
         # 接收方可以是多个账户, 用分号分开,send_email()函数中手动设置
-        recipientAddrs = 'alinjiong@qq.com;976297700@qq.com'
+        recipientAddrs = 'alinjiong@qq.com'
         subject = '青年就业见习基地'  # 主题
         content = '附件下载'  # 正文内容
         send_email(smtpHost, port, sendAddr, password,
@@ -1270,17 +1270,17 @@ def post_file_list():
 
 if __name__ == "__main__":
     schedule.every().day.at("15:55").do(record_file_list)
-    schedule.every().day.at("16:00").do(func1)
-    schedule.every().day.at("16:00").do(func2)
-    schedule.every().day.at("16:00").do(func3)
-    schedule.every().day.at("16:00").do(func4)
-    schedule.every().day.at("16:00").do(func5)
-    schedule.every().day.at("16:00").do(func6)
-    schedule.every().day.at("16:00").do(func7)
-    schedule.every().day.at("16:00").do(func8)
-    schedule.every().day.at("16:00").do(func9)
-    schedule.every().day.at("16:00").do(func10)
-    schedule.every().day.at("16:00").do(func11)
+    schedule.every().day.at("16:00:05").do(func1)
+    schedule.every().day.at("16:00:10").do(func2)
+    schedule.every().day.at("16:00:15").do(func3)
+    schedule.every().day.at("16:00:20").do(func4)
+    schedule.every().day.at("16:00:25").do(func5)
+    schedule.every().day.at("16:00:30").do(func6)
+    schedule.every().day.at("16:00:35").do(func7)
+    schedule.every().day.at("16:00:40").do(func8)
+    schedule.every().day.at("16:00:45").do(func9)
+    schedule.every().day.at("16:00:50").do(func10)
+    schedule.every().day.at("16:00:55").do(func11)
     schedule.every().day.at("16:05").do(post_file_list)
 
     while True:
