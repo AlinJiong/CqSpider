@@ -1,3 +1,4 @@
+from typing import List
 import schedule
 import requests
 import re
@@ -18,41 +19,57 @@ import functools
 import traceback
 import logging
 
-cur_dir = os.getcwd()  
+cur_dir = os.getcwd()
 log_path = os.path.join(cur_dir, "info.log")
 
+cancel_words = ["取消", "撤销", "清退"]
+
 # encoding='utf-8'
-logging.basicConfig(filename=log_path, level=logging.DEBUG,
-                    filemode='a+', format='%(levelname)s:%(asctime)s:%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(
+    filename=log_path,
+    level=logging.DEBUG,
+    filemode="a+",
+    format="%(levelname)s:%(asctime)s:%(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 headers = {
-    'User-agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.114 Safari/537.36 Edg/103.0.1264.62'
+    "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.114 Safari/537.36 Edg/103.0.1264.62"
 }
 
+
+urls_content = []  # 记录urls
 
 files_before = []
 
 files_after = []
 
+dict_psw = {}
 
-def send_email(smtpHost, port, sendAddr, password, recipientAddrs, subject='', content='', file_post=[]):
+
+def get_password():
+    if not dict_psw.get("password"):
+        with open("test_password.txt") as f:
+            dict_psw["password"] = f.readline()
+    return dict_psw["password"]
+
+
+def send_email(smtpHost, port, sendAddr, password, recipientAddrs, subject="", content="", file_post=[]):
     msg = email.mime.multipart.MIMEMultipart()
-    msg['from'] = sendAddr
+    msg["from"] = sendAddr
     # 多个收件人的邮箱应该放在字符串中,用字符分隔, 然后用split()分开,不能放在列表中, 因为要使用encode属性
-    msg['to'] = recipientAddrs
-    msg['subject'] = subject
+    msg["to"] = recipientAddrs
+    msg["subject"] = subject
     content = content
-    txt = email.mime.text.MIMEText(content, 'plain', 'utf-8')
+    txt = email.mime.text.MIMEText(content, "plain", "utf-8")
     msg.attach(txt)
     print("准备添加附件...")
     # 添加附件，从本地路径读取。如果添加多个附件，可以定义part_2,part_3等，然后使用part_2.add_header()和msg.attach(part_2)即可。
 
     for file in file_post:
-        part = MIMEApplication(
-            open(file, 'rb').read())
+        part = MIMEApplication(open(file, "rb").read())
         # 给附件重命名,一般和原文件名一样,改错了可能无法打开.
-        part.add_header('Content-Disposition', 'attachment',  filename=file)
+        part.add_header("Content-Disposition", "attachment", filename=file)
         msg.attach(part)
 
     # 需要一个安全的连接，用SSL的方式去登录得用SMTP_SSL，之前用的是SMTP（）.端口号465或587
@@ -68,18 +85,21 @@ def post_email(file_post=[]):
     try:
         # 设置好邮箱信息
         # 这是QQ邮箱服务器。如果是腾讯企业邮箱，其服务器为smtp.exmail.qq.com。其他邮箱需要查询服务器地址和端口号。
-        smtpHost = 'smtp.qq.com'
+        smtpHost = "smtp.qq.com"
         port = 465  # 端口号
-        sendAddr = '2208957021@qq.com'  # 发送方地址
+        sendAddr = "2208957021@qq.com"  # 发送方地址
         # 手动输入授权码更安全.授权码的获取:打开qq邮箱->设置->账户->开启IMAP/SMTP服务->发送短信->授权码
 
-        password = "muklngjwdibgecjb"
+        password = get_password()
         # 接收方可以是多个账户, 用分号分开,send_email()函数中手动设置
-        recipientAddrs = 'alinjiong@qq.com'
-        subject = '青年就业见习基地'  # 主题
-        content = '附件下载'  # 正文内容
-        send_email(smtpHost, port, sendAddr, password,
-                   recipientAddrs, subject, content, file_post)  # 调用函数
+        recipientAddrs = "alinjiong@qq.com;1789160985@qq.com"
+        subject = "青年就业见习基地"  # 主题
+        str = "\n\n"
+
+        content = "附件下载\n" + str.join(urls_content)  # 正文内容
+        send_email(
+            smtpHost, port, sendAddr, password, recipientAddrs, subject, content, file_post
+        )  # 调用函数
     except Exception as err:
         print(err)
 
@@ -88,18 +108,17 @@ def send_exceptions(error: str):
     try:
         # 设置好邮箱信息
         # 这是QQ邮箱服务器。如果是腾讯企业邮箱，其服务器为smtp.exmail.qq.com。其他邮箱需要查询服务器地址和端口号。
-        smtpHost = 'smtp.qq.com'
+        smtpHost = "smtp.qq.com"
         port = 465  # 端口号
-        sendAddr = '2208957021@qq.com'  # 发送方地址
+        sendAddr = "2208957021@qq.com"  # 发送方地址
         # 手动输入授权码更安全.授权码的获取:打开qq邮箱->设置->账户->开启IMAP/SMTP服务->发送短信->授权码
 
-        password = "muklngjwdibgecjb"
+        password = get_password()
         # 接收方可以是多个账户, 用分号分开,send_email()函数中手动设置
-        recipientAddrs = 'alinjiong@qq.com'
-        subject = '青年就业基地程序异常'  # 主题
+        recipientAddrs = "alinjiong@qq.com"
+        subject = "青年就业基地程序异常"  # 主题
         content = error  # 正文内容
-        send_email(smtpHost, port, sendAddr, password,
-                   recipientAddrs, subject, content)  # 调用函数
+        send_email(smtpHost, port, sendAddr, password, recipientAddrs, subject, content)  # 调用函数
     except Exception as err:
         print(err)
 
@@ -108,11 +127,13 @@ def catch_exceptions_decorator(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
+            time.sleep(2)
             return func(*args, **kwargs)
         except:
             error = traceback.format_exc()
             send_exceptions(error)
             return schedule.CancelJob
+
     return wrapper
 
 
@@ -154,7 +175,7 @@ def get_timestamp() -> tuple:
     res = []
     for t in _time_str:
         res.append(trans_time(t))
-    
+
     # 时间范围扩大一天，为上个月的最后一天到下个月的第一天
     #  ('2022-07-31 00:00:00', '2022-09-01 00:00:00')
     res[0] -= 86400000
@@ -165,9 +186,9 @@ def get_public_period(txt: str) -> str:
     """获取公示期"""
     html = etree.HTML(txt)
 
-    p1 = html.xpath('//p//span/text()')
+    p1 = html.xpath("//p//span/text()")
 
-    p2 = html.xpath('//p/text()')
+    p2 = html.xpath("//p/text()")
 
     info1 = "".join(p1)
     info2 = "".join(p2)
@@ -179,14 +200,24 @@ def get_public_period(txt: str) -> str:
     if public_period:
         public_period = public_period.group()
     else:
-        public_period = ''
+        public_period = ""
 
     print(public_period)
-    
+
     if len(public_period) > 24:
         return ""
 
     return public_period
+
+
+def check_cancel(cancel_words: List[str], target_str: str) -> bool:
+    """
+    檢查是否為撤銷的公示
+    """
+    for word in cancel_words:
+        if word in target_str:
+            return True
+    return False
 
 
 @catch_exceptions_decorator
@@ -197,7 +228,7 @@ def func1():
     # 2、有时候公示是以文件形式展示的出现的，需要采取两种方式解析页面
     # 3、清退，这个问题可以通过筛选公示名称来解决
 
-    city = '渝中区'
+    city = "渝中区"
 
     file_list = get_file_list()
 
@@ -209,21 +240,20 @@ def func1():
         "searchBy": "title",
     }
 
-    params['beginDateTime'], params['endDateTime'] = get_timestamp()
+    params["beginDateTime"], params["endDateTime"] = get_timestamp()
 
     # params['beginDateTime'], params['endDateTime'] = [1661961600000, 1677600000000]
 
-    res = requests.post(
-        url='http://cqjlp.gov.cn/irs/front/search', json=params)
+    res = requests.post(url="http://cqjlp.gov.cn/irs/front/search", json=params)
     url_json = json.loads(res.text)
-    url_list = url_json['data']['middle']['list']
+    url_list = url_json["data"]["middle"]["list"]
 
     # 利用字典去除重复的url
     title_url = {}
 
     for item in url_list:
-        url = item['url']
-        title = item['title_no_tag']
+        url = item["url"]
+        title = item["title_no_tag"]
 
         if title_url.get(title) == None:
             title_url[title] = url
@@ -237,6 +267,7 @@ def func1():
             urls.append(v)
 
     print(urls)
+    urls_content.extend(urls)
 
     # urls = [
     #     "http://www.cqyz.gov.cn/bm_229/qrlsbj/zwgk_97157/fdzdgknr_97159/zdmsxx_109235/cjjy_109236/jyxxfw/gxbyfw/jyjxbtsl/202301/t20230112_11493802.html?TVS2YU=865C6A0",
@@ -245,7 +276,7 @@ def func1():
 
     for url in urls:
         res = requests.get(url=url, headers=headers, timeout=10)
-        res.encoding = 'utf-8'
+        res.encoding = "utf-8"
 
         if res.status_code == 200:
             public_period = get_public_period(res.text)
@@ -254,10 +285,10 @@ def func1():
 
             if file_url:
                 href = urljoin(url, file_url.group().split('"')[1])
-                file_type = href.split('.')[-1]
+                file_type = href.split(".")[-1]
                 # print(file_type)
 
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.' + file_type
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + "." + file_type
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
@@ -268,31 +299,31 @@ def func1():
 
             else:
                 html = etree.HTML(res.text)
-                all_data = html.xpath('//tbody/tr')
+                all_data = html.xpath("//tbody/tr")
                 info = []
-                columns = ['单位名称', '单位地址']
+                columns = ["单位名称", "单位地址"]
                 for data in all_data:
-                    company = ''.join(data.xpath("./td[2]/p/span/text()"))
-                    address = ''.join(data.xpath("./td[5]//span/text()"))
-                    #print(company, address)
+                    company = "".join(data.xpath("./td[2]/p/span/text()"))
+                    address = "".join(data.xpath("./td[5]//span/text()"))
+                    # print(company, address)
                     info.append([company, address])
 
                 file = pd.DataFrame(columns=columns, data=info[1:])
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.csv'
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + ".csv"
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
                     continue
                 print(file_name)
 
-                file.to_csv(file_name, encoding='utf-8')
+                file.to_csv(file_name, encoding="utf-8")
 
 
 @catch_exceptions_decorator
 def func2():
     # 江北区
 
-    city = '江北区'
+    city = "江北区"
 
     file_list = get_file_list()
 
@@ -304,21 +335,20 @@ def func2():
         "searchBy": "title",
     }
 
-    params['beginDateTime'], params['endDateTime'] = get_timestamp()
+    params["beginDateTime"], params["endDateTime"] = get_timestamp()
 
     # params['beginDateTime'], params['endDateTime'] = [1661961600000, 1677600000000]
 
-    res = requests.post(
-        url='http://cqjlp.gov.cn/irs/front/search', json=params)
+    res = requests.post(url="http://cqjlp.gov.cn/irs/front/search", json=params)
     url_json = json.loads(res.text)
-    url_list = url_json['data']['middle']['list']
+    url_list = url_json["data"]["middle"]["list"]
 
     # 利用字典去除重复的url
     title_url = {}
 
     for item in url_list:
-        url = item['url']
-        title = item['title_no_tag']
+        url = item["url"]
+        title = item["title_no_tag"]
 
         if title_url.get(title) == None:
             title_url[title] = url
@@ -332,10 +362,11 @@ def func2():
             urls.append(v)
 
     print(urls)
+    urls_content.extend(urls)
 
     for url in urls:
         res = requests.get(url=url, headers=headers, timeout=10)
-        res.encoding = 'utf-8'
+        res.encoding = "utf-8"
 
         if res.status_code == 200:
 
@@ -345,10 +376,10 @@ def func2():
 
             if file_url:
                 href = urljoin(url, file_url.group().split('"')[1])
-                file_type = href.split('.')[-1]
+                file_type = href.split(".")[-1]
                 # print(file_type)
 
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.' + file_type
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + "." + file_type
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
@@ -359,31 +390,31 @@ def func2():
 
             else:
                 html = etree.HTML(res.text)
-                all_data = html.xpath('//tbody/tr')
+                all_data = html.xpath("//tbody/tr")
                 info = []
-                columns = ['单位名称', '单位地址']
+                columns = ["单位名称", "单位地址"]
                 for data in all_data:
                     company = "".join(data.xpath("./td[2]//span/text()"))
                     address = "".join(data.xpath("./td[5]//span/text()"))
-                    #print(company, address)
+                    # print(company, address)
                     info.append([company, address])
 
                 file = pd.DataFrame(columns=columns, data=info[1:])
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.csv'
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + ".csv"
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
                     continue
                 print(file_name)
 
-                file.to_csv(file_name, encoding='utf-8')
+                file.to_csv(file_name, encoding="utf-8")
 
 
 @catch_exceptions_decorator
 def func3():
     # 沙坪坝区
 
-    city = '沙坪坝区'
+    city = "沙坪坝区"
 
     file_list = get_file_list()
 
@@ -395,21 +426,20 @@ def func3():
         "searchBy": "title",
     }
 
-    params['beginDateTime'], params['endDateTime'] = get_timestamp()
+    params["beginDateTime"], params["endDateTime"] = get_timestamp()
 
     # params['beginDateTime'], params['endDateTime'] = [1661961600000, 1677600000000]
 
-    res = requests.post(
-        url='http://cqjlp.gov.cn/irs/front/search', json=params)
+    res = requests.post(url="http://cqjlp.gov.cn/irs/front/search", json=params)
     url_json = json.loads(res.text)
-    url_list = url_json['data']['middle']['list']
+    url_list = url_json["data"]["middle"]["list"]
 
     # 利用字典去除重复的url
     title_url = {}
 
     for item in url_list:
-        url = item['url']
-        title = item['title_no_tag']
+        url = item["url"]
+        title = item["title_no_tag"]
 
         if title_url.get(title) == None:
             title_url[title] = url
@@ -423,10 +453,11 @@ def func3():
             urls.append(v)
 
     print(urls)
+    urls_content.extend(urls)
 
     for url in urls:
         res = requests.get(url=url, headers=headers, timeout=10)
-        res.encoding = 'utf-8'
+        res.encoding = "utf-8"
 
         if res.status_code == 200:
             public_period = get_public_period(res.text)
@@ -435,10 +466,10 @@ def func3():
 
             if file_url:
                 href = urljoin(url, file_url.group().split('"')[1])
-                file_type = href.split('.')[-1]
+                file_type = href.split(".")[-1]
                 # print(file_type)
 
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.' + file_type
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + "." + file_type
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
@@ -449,25 +480,25 @@ def func3():
 
             else:
                 html = etree.HTML(res.text)
-                all_data = html.xpath('//tbody/tr')
+                all_data = html.xpath("//tbody/tr")
                 info = []
-                columns = ['单位名称', '单位地址']
+                columns = ["单位名称", "单位地址"]
                 # for data in all_data[1:]:
                 for data in all_data:
                     company = "".join(data.xpath("./td[2]/text()"))
                     address = "".join(data.xpath("./td[5]/text()"))
-                    #print(company, address)
+                    # print(company, address)
                     info.append([company, address])
 
                 file = pd.DataFrame(columns=columns, data=info[1:])
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.csv'
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + ".csv"
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
                     continue
                 print(file_name)
 
-                file.to_csv(file_name, encoding='utf-8')
+                file.to_csv(file_name, encoding="utf-8")
 
 
 @catch_exceptions_decorator
@@ -475,7 +506,7 @@ def func4():
     # 九龙坡区
     # 获取xlsx链接并下载
 
-    city = '九龙坡区'
+    city = "九龙坡区"
 
     file_list = get_file_list()
 
@@ -487,21 +518,20 @@ def func4():
         "searchBy": "title",
     }
 
-    params['beginDateTime'], params['endDateTime'] = get_timestamp()
+    params["beginDateTime"], params["endDateTime"] = get_timestamp()
 
     # params['beginDateTime'], params['endDateTime'] = [1661961600000, 1677600000000]
 
-    res = requests.post(
-        url='http://cqjlp.gov.cn/irs/front/search', json=params)
+    res = requests.post(url="http://cqjlp.gov.cn/irs/front/search", json=params)
     url_json = json.loads(res.text)
-    url_list = url_json['data']['middle']['list']
+    url_list = url_json["data"]["middle"]["list"]
 
     # 利用字典去除重复的url
     title_url = {}
 
     for item in url_list:
-        url = item['url']
-        title = item['title_no_tag']
+        url = item["url"]
+        title = item["title_no_tag"]
 
         if title_url.get(title) == None:
             title_url[title] = url
@@ -515,10 +545,11 @@ def func4():
             urls.append(v)
 
     print(urls)
+    urls_content.extend(urls)
 
     for url in urls:
         res = requests.get(url=url, headers=headers, timeout=10)
-        res.encoding = 'utf-8'
+        res.encoding = "utf-8"
 
         if res.status_code == 200:
             public_period = get_public_period(res.text)
@@ -527,10 +558,10 @@ def func4():
 
             if file_url:
                 href = urljoin(url, file_url.group().split('"')[1])
-                file_type = href.split('.')[-1]
+                file_type = href.split(".")[-1]
                 # print(file_type)
 
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.' + file_type
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + "." + file_type
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
@@ -541,25 +572,25 @@ def func4():
 
             else:
                 html = etree.HTML(res.text)
-                all_data = html.xpath('//tbody/tr')
+                all_data = html.xpath("//tbody/tr")
                 info = []
-                columns = ['单位名称', '单位地址']
+                columns = ["单位名称", "单位地址"]
                 # for data in all_data[1:]:
                 for data in all_data:
                     company = "".join(data.xpath("./td[2]/text()"))
                     address = "".join(data.xpath("./td[5]/text()"))
-                    #print(company, address)
+                    # print(company, address)
                     info.append([company, address])
 
                 file = pd.DataFrame(columns=columns, data=info[1:])
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.csv'
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + ".csv"
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
                     continue
                 print(file_name)
 
-                file.to_csv(file_name, encoding='utf-8')
+                file.to_csv(file_name, encoding="utf-8")
 
 
 @catch_exceptions_decorator
@@ -570,7 +601,7 @@ def func5():
     # 难点，剔除取消的公示名单
     # 取消
 
-    city = '南岸区'
+    city = "南岸区"
 
     file_list = get_file_list()
 
@@ -582,21 +613,20 @@ def func5():
         "searchBy": "title",
     }
 
-    params['beginDateTime'], params['endDateTime'] = get_timestamp()
+    params["beginDateTime"], params["endDateTime"] = get_timestamp()
 
     # params['beginDateTime'], params['endDateTime'] = [1661961600000, 1677600000000]
 
-    res = requests.post(
-        url='http://cqjlp.gov.cn/irs/front/search', json=params)
+    res = requests.post(url="http://cqjlp.gov.cn/irs/front/search", json=params)
     url_json = json.loads(res.text)
-    url_list = url_json['data']['middle']['list']
+    url_list = url_json["data"]["middle"]["list"]
 
     # 利用字典去除重复的url
     title_url = {}
 
     for item in url_list:
-        url = item['url']
-        title = item['title_no_tag']
+        url = item["url"]
+        title = item["title_no_tag"]
 
         if title_url.get(title) == None:
             title_url[title] = url
@@ -607,15 +637,16 @@ def func5():
     # 筛选公示
     for k, v in title_url.items():
         if re.search(pattern, k) != None:
-            if k.find('取消') != -1:
+            if check_cancel(cancel_words, k):
                 continue
             urls.append(v)
 
     print(urls)
+    urls_content.extend(urls)
 
     for url in urls:
         res = requests.get(url=url, headers=headers, timeout=10)
-        res.encoding = 'utf-8'
+        res.encoding = "utf-8"
 
         if res.status_code == 200:
             public_period = get_public_period(res.text)
@@ -624,10 +655,10 @@ def func5():
 
             if file_url:
                 href = urljoin(url, file_url.group().split('"')[1])
-                file_type = href.split('.')[-1]
+                file_type = href.split(".")[-1]
                 # print(file_type)
 
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.' + file_type
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + "." + file_type
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
@@ -638,25 +669,25 @@ def func5():
 
             else:
                 html = etree.HTML(res.text)
-                all_data = html.xpath('//tbody/tr')
+                all_data = html.xpath("//tbody/tr")
                 info = []
-                columns = ['单位名称', '单位地址']
+                columns = ["单位名称", "单位地址"]
                 # for data in all_data[1:]:
                 for data in all_data:
                     company = "".join(data.xpath("./td[2]/text()"))
                     address = "".join(data.xpath("./td[5]/text()"))
-                    #print(company, address)
+                    # print(company, address)
                     info.append([company, address])
 
                 file = pd.DataFrame(columns=columns, data=info[1:])
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.csv'
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + ".csv"
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
                     continue
                 print(file_name)
 
-                file.to_csv(file_name, encoding='utf-8')
+                file.to_csv(file_name, encoding="utf-8")
 
 
 @catch_exceptions_decorator
@@ -664,7 +695,7 @@ def func6():
     # 渝北区
     # 清退
 
-    city = '渝北区'
+    city = "渝北区"
 
     file_list = get_file_list()
 
@@ -676,21 +707,20 @@ def func6():
         "searchBy": "title",
     }
 
-    params['beginDateTime'], params['endDateTime'] = get_timestamp()
+    params["beginDateTime"], params["endDateTime"] = get_timestamp()
 
     # params['beginDateTime'], params['endDateTime'] = [1661961600000, 1677600000000]
 
-    res = requests.post(
-        url='http://cqjlp.gov.cn/irs/front/search', json=params)
+    res = requests.post(url="http://cqjlp.gov.cn/irs/front/search", json=params)
     url_json = json.loads(res.text)
-    url_list = url_json['data']['middle']['list']
+    url_list = url_json["data"]["middle"]["list"]
 
     # 利用字典去除重复的url
     title_url = {}
 
     for item in url_list:
-        url = item['url']
-        title = item['title_no_tag']
+        url = item["url"]
+        title = item["title_no_tag"]
 
         if title_url.get(title) == None:
             title_url[title] = url
@@ -701,15 +731,16 @@ def func6():
     # 筛选公示
     for k, v in title_url.items():
         if re.search(pattern, k) != None:
-            if k.find('清退') != -1:
+            if check_cancel(cancel_words, k):
                 continue
             urls.append(v)
 
     print(urls)
+    urls_content.extend(urls)
 
     for url in urls:
         res = requests.get(url=url, headers=headers, timeout=10)
-        res.encoding = 'utf-8'
+        res.encoding = "utf-8"
 
         if res.status_code == 200:
             public_period = get_public_period(res.text)
@@ -718,10 +749,10 @@ def func6():
 
             if file_url:
                 href = urljoin(url, file_url.group().split('"')[1])
-                file_type = href.split('.')[-1]
+                file_type = href.split(".")[-1]
                 # print(file_type)
 
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.' + file_type
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + "." + file_type
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
@@ -732,32 +763,32 @@ def func6():
 
             else:
                 html = etree.HTML(res.text)
-                all_data = html.xpath('//table/tbody/tr')
+                all_data = html.xpath("//table/tbody/tr")
                 info = []
-                columns = ['单位名称', '单位地址']
+                columns = ["单位名称", "单位地址"]
                 # for data in all_data[1:]:
                 for data in all_data:
                     company = "".join(data.xpath("./td[2]//span/text()"))
                     address = "".join(data.xpath("./td[5]//span/text()"))
-                    #print(company, address)
+                    # print(company, address)
                     info.append([company, address])
 
                 file = pd.DataFrame(columns=columns, data=info[1:])
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.csv'
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + ".csv"
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
                     continue
                 print(file_name)
 
-                file.to_csv(file_name, encoding='utf-8')
+                file.to_csv(file_name, encoding="utf-8")
 
 
 @catch_exceptions_decorator
 def func7():
     # 北碚区
     # 撤销
-    city = '北碚区'
+    city = "北碚区"
 
     file_list = get_file_list()
 
@@ -769,21 +800,20 @@ def func7():
         "searchBy": "title",
     }
 
-    params['beginDateTime'], params['endDateTime'] = get_timestamp()
+    params["beginDateTime"], params["endDateTime"] = get_timestamp()
 
     # params['beginDateTime'], params['endDateTime'] = [1661961600000, 1677600000000]
 
-    res = requests.post(
-        url='http://cqjlp.gov.cn/irs/front/search', json=params)
+    res = requests.post(url="http://cqjlp.gov.cn/irs/front/search", json=params)
     url_json = json.loads(res.text)
-    url_list = url_json['data']['middle']['list']
+    url_list = url_json["data"]["middle"]["list"]
 
     # 利用字典去除重复的url
     title_url = {}
 
     for item in url_list:
-        url = item['url']
-        title = item['title_no_tag']
+        url = item["url"]
+        title = item["title_no_tag"]
 
         if title_url.get(title) == None:
             title_url[title] = url
@@ -794,15 +824,16 @@ def func7():
     # 筛选公示
     for k, v in title_url.items():
         if re.search(pattern, k) != None:
-            if k.find('撤销') != -1:
+            if check_cancel(cancel_words, k):
                 continue
             urls.append(v)
 
     print(urls)
+    urls_content.extend(urls)
 
     for url in urls:
         res = requests.get(url=url, headers=headers, timeout=10)
-        res.encoding = 'utf-8'
+        res.encoding = "utf-8"
 
         if res.status_code == 200:
             public_period = get_public_period(res.text)
@@ -811,10 +842,10 @@ def func7():
 
             if file_url:
                 href = urljoin(url, file_url.group().split('"')[1])
-                file_type = href.split('.')[-1]
+                file_type = href.split(".")[-1]
                 # print(file_type)
 
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.' + file_type
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + "." + file_type
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
@@ -825,25 +856,25 @@ def func7():
 
             else:
                 html = etree.HTML(res.text)
-                all_data = html.xpath('//table/tbody/tr')
+                all_data = html.xpath("//table/tbody/tr")
                 info = []
-                columns = ['单位名称', '单位地址']
+                columns = ["单位名称", "单位地址"]
                 # for data in all_data[1:]:
                 for data in all_data:
                     company = "".join(data.xpath("./td[2]//span/text()"))
                     address = "".join(data.xpath("./td[5]//span/text()"))
-                    #print(company, address)
+                    # print(company, address)
                     info.append([company, address])
 
                 file = pd.DataFrame(columns=columns, data=info[1:])
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.csv'
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + ".csv"
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
                     continue
                 print(file_name)
 
-                file.to_csv(file_name, encoding='utf-8')
+                file.to_csv(file_name, encoding="utf-8")
 
 
 @catch_exceptions_decorator
@@ -851,7 +882,7 @@ def func8():
     # 大渡口区
     # 清退
 
-    city = '大渡口区'
+    city = "大渡口区"
 
     file_list = get_file_list()
 
@@ -863,21 +894,20 @@ def func8():
         "searchBy": "title",
     }
 
-    params['beginDateTime'], params['endDateTime'] = get_timestamp()
+    params["beginDateTime"], params["endDateTime"] = get_timestamp()
 
     # params['beginDateTime'], params['endDateTime'] = [1661961600000, 1677600000000]
 
-    res = requests.post(
-        url='http://cqjlp.gov.cn/irs/front/search', json=params)
+    res = requests.post(url="http://cqjlp.gov.cn/irs/front/search", json=params)
     url_json = json.loads(res.text)
-    url_list = url_json['data']['middle']['list']
+    url_list = url_json["data"]["middle"]["list"]
 
     # 利用字典去除重复的url
     title_url = {}
 
     for item in url_list:
-        url = item['url']
-        title = item['title_no_tag']
+        url = item["url"]
+        title = item["title_no_tag"]
 
         if title_url.get(title) == None:
             title_url[title] = url
@@ -888,29 +918,29 @@ def func8():
     # 筛选公示
     for k, v in title_url.items():
         if re.search(pattern, k) != None:
-            if k.find('清退') != -1:
+            if check_cancel(cancel_words, k):
                 continue
             urls.append(v)
 
     print(urls)
+    urls_content.extend(urls)
 
     for url in urls:
         res = requests.get(url=url, headers=headers, timeout=10)
-        res.encoding = 'utf-8'
+        res.encoding = "utf-8"
 
         if res.status_code == 200:
             public_period = get_public_period(res.text)
 
-            file_url = re.search(r"href=.\.\/\w+\.docx|href=.\.\/\w+\.xlsx",
-                                 res.text)
+            file_url = re.search(r"href=.\.\/\w+\.docx|href=.\.\/\w+\.xlsx", res.text)
 
             if file_url:
-                url_list = file_url.group().split('.')
-                html_href = '.' + ".".join(url_list[1:])
+                url_list = file_url.group().split(".")
+                html_href = "." + ".".join(url_list[1:])
 
                 file_type = url_list[-1]
 
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.' + file_type
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + "." + file_type
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
@@ -924,25 +954,25 @@ def func8():
 
             else:
                 html = etree.HTML(res.text)
-                all_data = html.xpath('//table/tbody/tr')
+                all_data = html.xpath("//table/tbody/tr")
                 info = []
-                columns = ['单位名称', '单位地址']
+                columns = ["单位名称", "单位地址"]
                 # for data in all_data[1:]:
                 for data in all_data:
                     company = "".join(data.xpath("./td[2]//span/text()"))
                     address = "".join(data.xpath("./td[5]//span/text()"))
-                    #print(company, address)
+                    # print(company, address)
                     info.append([company, address])
 
                 file = pd.DataFrame(columns=columns, data=info[1:])
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.csv'
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + ".csv"
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
                     continue
                 print(file_name)
 
-                file.to_csv(file_name, encoding='utf-8')
+                file.to_csv(file_name, encoding="utf-8")
 
 
 @catch_exceptions_decorator
@@ -950,7 +980,7 @@ def func9():
     # 巴南区
     # 清退
 
-    city = '巴南区'
+    city = "巴南区"
 
     file_list = get_file_list()
 
@@ -962,21 +992,20 @@ def func9():
         "searchBy": "title",
     }
 
-    params['beginDateTime'], params['endDateTime'] = get_timestamp()
+    params["beginDateTime"], params["endDateTime"] = get_timestamp()
 
     # params['beginDateTime'], params['endDateTime'] = [1661961600000, 1677600000000]
 
-    res = requests.post(
-        url='http://cqjlp.gov.cn/irs/front/search', json=params)
+    res = requests.post(url="http://cqjlp.gov.cn/irs/front/search", json=params)
     url_json = json.loads(res.text)
-    url_list = url_json['data']['middle']['list']
+    url_list = url_json["data"]["middle"]["list"]
 
     # 利用字典去除重复的url
     title_url = {}
 
     for item in url_list:
-        url = item['url']
-        title = item['title_no_tag']
+        url = item["url"]
+        title = item["title_no_tag"]
 
         if title_url.get(title) == None:
             title_url[title] = url
@@ -987,15 +1016,16 @@ def func9():
     # 筛选公示
     for k, v in title_url.items():
         if re.search(pattern, k) != None:
-            if k.find('清退') != -1:
+            if check_cancel(cancel_words, k):
                 continue
             urls.append(v)
 
     print(urls)
+    urls_content.extend(urls)
 
     for url in urls:
         res = requests.get(url=url, headers=headers, timeout=10)
-        res.encoding = 'utf-8'
+        res.encoding = "utf-8"
 
         if res.status_code == 200:
             public_period = get_public_period(res.text)
@@ -1004,10 +1034,10 @@ def func9():
 
             if file_url:
                 href = urljoin(url, file_url.group().split('"')[1])
-                file_type = href.split('.')[-1]
+                file_type = href.split(".")[-1]
                 # print(file_type)
 
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.' + file_type
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + "." + file_type
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
@@ -1018,25 +1048,25 @@ def func9():
 
             else:
                 html = etree.HTML(res.text)
-                all_data = html.xpath('//tbody/tr')
+                all_data = html.xpath("//tbody/tr")
                 info = []
-                columns = ['单位名称', '单位地址']
+                columns = ["单位名称", "单位地址"]
                 # for data in all_data[3:]:
                 for data in all_data:
                     company = "".join(data.xpath("./td[2]//span/text()"))
                     address = "".join(data.xpath("./td[5]//span/text()"))
-                    #print(company, address)
+                    # print(company, address)
                     info.append([company, address])
 
                 file = pd.DataFrame(columns=columns, data=info[1:])
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.csv'
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + ".csv"
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
                     continue
                 print(file_name)
 
-                file.to_csv(file_name, encoding='utf-8')
+                file.to_csv(file_name, encoding="utf-8")
 
 
 @catch_exceptions_decorator
@@ -1047,7 +1077,7 @@ def func10():
     # 需解决的问题：公示名称重复，title+time来识别
     # 期间发现的bug，有不可视符 \u200b 出现的可能性较低，暂未单独处理
 
-    city = '长寿区'
+    city = "长寿区"
 
     file_list = get_file_list()
 
@@ -1059,22 +1089,21 @@ def func10():
         "searchBy": "title",
     }
 
-    params['beginDateTime'], params['endDateTime'] = get_timestamp()
+    params["beginDateTime"], params["endDateTime"] = get_timestamp()
 
     # params['beginDateTime'], params['endDateTime'] = [1661961600000, 1677600000000]
 
-    res = requests.post(
-        url='http://cqjlp.gov.cn/irs/front/search', json=params)
+    res = requests.post(url="http://cqjlp.gov.cn/irs/front/search", json=params)
     url_json = json.loads(res.text)
-    url_list = url_json['data']['middle']['list']
+    url_list = url_json["data"]["middle"]["list"]
 
     # 利用字典去除重复的url
     title_url = {}
 
     for item in url_list:
-        url = item['url']
-        title = item['title_no_tag']
-        _time = item['time'].split()[0]
+        url = item["url"]
+        title = item["title_no_tag"]
+        _time = item["time"].split()[0]
 
         if title_url.get(title) == None:
             title_url[title + _time] = url
@@ -1085,15 +1114,16 @@ def func10():
     # 筛选公示
     for k, v in title_url.items():
         if re.search(pattern, k) != None:
-            if k.find('取消') != -1:
+            if check_cancel(cancel_words, k):
                 continue
             urls.append(v)
 
     print(urls)
+    urls_content.extend(urls)
 
     for url in urls:
         res = requests.get(url=url, headers=headers, timeout=10)
-        res.encoding = 'utf-8'
+        res.encoding = "utf-8"
 
         if res.status_code == 200:
             public_period = get_public_period(res.text)
@@ -1102,10 +1132,10 @@ def func10():
 
             if file_url:
                 href = urljoin(url, file_url.group().split('"')[1])
-                file_type = href.split('.')[-1]
+                file_type = href.split(".")[-1]
                 # print(file_type)
 
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.' + file_type
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + "." + file_type
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
@@ -1116,9 +1146,9 @@ def func10():
 
             else:
                 html = etree.HTML(res.text)
-                all_data = html.xpath('//tbody/tr')
+                all_data = html.xpath("//tbody/tr")
                 info = []
-                columns = ['单位名称', '单位地址']
+                columns = ["单位名称", "单位地址"]
                 # for data in all_data[4:]:
                 for data in all_data:
                     company = "".join(data.xpath("./td[2]//span/text()"))
@@ -1127,14 +1157,14 @@ def func10():
                     info.append([company, address])
 
                 file = pd.DataFrame(columns=columns, data=info[1:])
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.csv'
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + ".csv"
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
                     continue
                 print(file_name)
 
-                file.to_csv(file_name, encoding='utf-8')
+                file.to_csv(file_name, encoding="utf-8")
 
 
 @catch_exceptions_decorator
@@ -1142,7 +1172,7 @@ def func11():
     # 永川区
     # 取消
 
-    city = '永川区'
+    city = "永川区"
 
     file_list = get_file_list()
 
@@ -1154,21 +1184,20 @@ def func11():
         "searchBy": "title",
     }
 
-    params['beginDateTime'], params['endDateTime'] = get_timestamp()
+    params["beginDateTime"], params["endDateTime"] = get_timestamp()
 
     # params['beginDateTime'], params['endDateTime'] = [1659283200000, 1677600000000]
 
-    res = requests.post(
-        url='http://cqjlp.gov.cn/irs/front/search', json=params)
+    res = requests.post(url="http://cqjlp.gov.cn/irs/front/search", json=params)
     url_json = json.loads(res.text)
-    url_list = url_json['data']['middle']['list']
+    url_list = url_json["data"]["middle"]["list"]
 
     # 利用字典去除重复的url
     title_url = {}
 
     for item in url_list:
-        url = item['url']
-        title = item['title_no_tag']
+        url = item["url"]
+        title = item["title_no_tag"]
 
         if title_url.get(title) == None:
             title_url[title] = url
@@ -1179,15 +1208,16 @@ def func11():
     # 筛选公示
     for k, v in title_url.items():
         if re.search(pattern, k) != None:
-            if k.find('取消') != -1:
+            if check_cancel(cancel_words, k):
                 continue
             urls.append(v)
 
     print(urls)
+    urls_content.extend(urls)
 
     for url in urls:
         res = requests.get(url=url, headers=headers, timeout=10)
-        res.encoding = 'utf-8'
+        res.encoding = "utf-8"
 
         if res.status_code == 200:
             public_period = get_public_period(res.text)
@@ -1195,11 +1225,11 @@ def func11():
             file_url = re.search(r"href=.*?(docx|xlsx)", res.text)
 
             if file_url:
-                href = urljoin(url, file_url.group().split('"')[1])
-                file_type = href.split('.')[-1]
+                href = urljoin(url, file_url.group().split("'")[1])
+                file_type = href.split(".")[-1]
                 # print(file_type)
 
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.' + file_type
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + "." + file_type
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
@@ -1210,9 +1240,9 @@ def func11():
 
             else:
                 html = etree.HTML(res.text)
-                all_data = html.xpath('//tbody/tr')
+                all_data = html.xpath("//tbody/tr")
                 info = []
-                columns = ['单位名称', '单位地址']
+                columns = ["单位名称", "单位地址"]
                 # for data in all_data[4:]:
                 for data in all_data:
                     company = "".join(data.xpath("./td[2]//span/text()"))
@@ -1221,20 +1251,21 @@ def func11():
                     info.append([company, address])
 
                 file = pd.DataFrame(columns=columns, data=info[1:])
-                file_name = city + '青年就业见习基地公示_' + public_period + '_' + '.csv'
+                file_name = city + "青年就业见习基地公示_" + public_period + "_" + ".csv"
 
                 # 保存文件，如果已有，则不保存，减少网络请求数
                 if file_name in file_list:
                     continue
                 print(file_name)
 
-                file.to_csv(file_name, encoding='utf-8')
+                file.to_csv(file_name, encoding="utf-8")
 
 
 @catch_exceptions_decorator
 def record_file_list():
-    global files_before
+    global files_before, urls_content
     files_before = get_file_list()
+    urls_content = []
 
 
 @catch_exceptions_decorator
@@ -1246,15 +1277,16 @@ def post_file_list():
     files = []
 
     for item in file_post:
-        if re.search('.*?(csv|docx|xlsx)', item):
+        if re.search(".*?(csv|docx|xlsx)", item):
             files.append(item)
-            
+
     logging.info(files)
-    
+
     if len(files) > 0:
         post_email(files)
 
 
+# record_file_list()
 # func1()
 # func2()
 # func3()
@@ -1266,7 +1298,7 @@ def post_file_list():
 # func9()
 # func10()
 # func11()
-
+# post_file_list()
 
 if __name__ == "__main__":
     schedule.every().day.at("15:55").do(record_file_list)
