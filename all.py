@@ -49,7 +49,8 @@ dict_psw = {}
 
 def get_password():
     if not dict_psw.get("password"):
-        with open("test_password.txt") as f:
+        pwd_path = os.path.join(cur_dir, 'test_password.txt')
+        with open(pwd_path) as f:
             dict_psw["password"] = f.readline()
     return dict_psw["password"]
 
